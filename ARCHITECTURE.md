@@ -93,9 +93,10 @@ report alone.
 
 ## Trade-offs and limits
 
-- The API map comes from the platform's source code. The live host was blocked in the
-  environment where this suite was written. Run `@smoke` first against a new target to
-  confirm the assumptions.
+- The API map comes from the platform's source code and was then checked against the
+  live site (see "Live verification" in `docs/API.md`). On the live site, every `/{id}`
+  path currently answers 500. The scenarios that use those paths stay red on purpose:
+  they describe the correct behaviour and will pass once the deployment is fixed.
 - Scenarios run one at a time by default, to be gentle on a shared public site. The
   token provider and per-scenario state are safe for parallel runs; to run in parallel,
   set `cucumber.execution.parallel.enabled=true`.

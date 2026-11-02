@@ -10,10 +10,25 @@ This map comes from reading the source at commit `efe2deb` (2026-10-23): the Spr
 controllers, services and validation annotations of the `auth`, `room`, `booking` and
 `message` services, plus the Next.js `assets` app that serves the public `/api/*` paths.
 
-The sandbox this framework was written in could not reach `automationintesting.online`
-(its network policy blocks the host), so **nothing below was checked against the live
-deployment**. Verify against the live site before trusting the edge cases. The
-`@smoke` suite is the fastest way to do that.
+## Live verification (2026-11-02)
+
+The full suite and manual `curl` probes were run against `https://automationintesting.online`:
+
+- **Matches this map:** every fixed-path endpoint. That covers login and validate
+  bodies and status codes, all room, booking and message validation messages (400),
+  401 for a missing token on `POST /api/room` and `GET /api/booking`, 409 for
+  overlapping or reversed booking dates, the room list and availability search, the
+  booking list and summary, the message list and count, and room/booking/message
+  creation.
+- **Broken on the live deployment:** **every `/{id}` path answers `500 Internal Server
+  Error`** (plain text), whatever the id, token or method. That includes `GET
+  /api/room/1`, `GET /api/booking/1` with a valid admin token, `GET /api/message/1`,
+  `PUT /api/message/1/read` and every `PUT`/`DELETE`. These are the paths Next.js
+  rewrites straight to the Spring services, so the rewrite target is probably
+  misconfigured in that deployment. The tables below describe the behaviour the source
+  code defines, which is what the suite asserts. The 35 scenarios that use these paths
+  fail until the deployment is fixed. Their cleanup also fails, so test data from them
+  stays on the site until the next reset.
 
 ## Architecture: two layers behind `/api`
 
@@ -107,9 +122,10 @@ Validation messages: `Name may not be blank`, `Email may not be blank`,
 ## Known quirks worth knowing
 
 - Several Next.js handlers call `response.json()` on backend error responses that have
-  **empty bodies** (for example a 403 or 404). That throws, and the handler then answers
-  **500**. This affects only the paths in the "Next.js handler" row above. The framework's
-  negative tests target paths where the source shows a deterministic status.
+  **empty bodies** (for example a 403). That throws, and the handler then answers
+  **500**. Confirmed live: `POST /api/room` with an invalid token returns 500
+  `{"errors":["An unexpected error occurred"]}` instead of 403. The suite does not assert
+  on this path.
 - `POST /api/auth/logout` does not invalidate the token (see above). The suite does not
   test logout invalidation, because that test would fail by design.
 - Room and message creation do not return the new id. The framework finds the new record
