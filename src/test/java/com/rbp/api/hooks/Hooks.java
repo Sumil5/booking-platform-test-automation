@@ -24,7 +24,8 @@ public class Hooks {
      * Skips scenarios tagged {@code @known-defect} unless {@code RUN_KNOWN_DEFECTS=true}.
      * Skipping, rather than filtering them out by tag, keeps them visible in every report
      * with the reason attached, and works with whatever tag expression the run uses.
-     * Order 0 runs this before the Background, so no test data is created for them.
+     * Before hooks run before Background steps, so no test data is created for them;
+     * order 0 also puts this ahead of any other Before hook that might set data up.
      */
     @Before(value = "@known-defect", order = 0)
     public void skipKnownDefectsUnlessRequested() {
