@@ -35,13 +35,21 @@ mvn test
 Smoke suite only:
 
 ```bash
-mvn test -Dcucumber.filter.tags=@smoke
+mvn test -Dgroups=smoke
 ```
 
-Any tag expression works:
+`-Dgroups` takes a JUnit Platform tag expression over the Cucumber tags, written without `@`:
 
 ```bash
-mvn test -Dcucumber.filter.tags="@bookings and not @negative"
+mvn test -Dgroups="bookings & !negative"
+```
+
+Scenarios tagged `@known-defect` describe correct behaviour that the live site currently
+gets wrong (see `docs/API.md`). They are reported as skipped, with the reason. To run them,
+for example to check whether the site has been fixed:
+
+```bash
+RUN_KNOWN_DEFECTS=true mvn test -Dgroups=known-defect
 ```
 
 Check that every step is bound to code, without sending any requests:
@@ -49,6 +57,26 @@ Check that every step is bound to code, without sending any requests:
 ```bash
 mvn test -Dcucumber.execution.dry-run=true
 ```
+
+## CI (GitLab)
+
+`.gitlab-ci.yml` runs:
+
+| Job | When | What |
+|---|---|---|
+| `compile-and-bind` | every pipeline | Compile and Cucumber dry-run; needs no secrets |
+| `smoke` | merge requests, default branch | `@smoke` |
+| `regression` | default branch, schedules, manual runs | `@regression` |
+| `known-defects` | schedules, manual runs | `@known-defect` with `RUN_KNOWN_DEFECTS=true`, allowed to fail |
+
+Set these under Settings > CI/CD > Variables:
+- `BASE_URL`, scoped to the environment named by `TARGET_ENV` (default `demo`).
+- `ADMIN_USERNAME` and `ADMIN_PASSWORD`, masked. Protected variables only reach
+  protected branches, so leave them unprotected if merge request pipelines should run
+  the smoke suite.
+
+For a nightly run, add a schedule under Build > Pipeline schedules. The JUnit results
+appear in the merge request widget, and the Cucumber HTML report is kept as a job artifact.
 
 ## Reports
 

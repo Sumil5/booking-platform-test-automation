@@ -1,0 +1,110 @@
+# API test pipeline for the Restful-Booker-Platform suite.
+#
+#   validate  compile + Cucumber dry-run (every step bound to code). No secrets, no network.
+#   test      smoke         merge requests and the default branch
+#             regression    default branch, nightly schedule, manual runs
+#             known-defects nightly schedule and manual runs; runs the @known-defect
+#                           scenarios and is allowed to fail. It turns green when the
+#                           platform is fixed, which is the cue to remove the tag.
+#
+# Required CI/CD variables (Settings > CI/CD > Variables):
+#   BASE_URL        scoped to an environment (see TARGET_ENV) so one pipeline can target any env
+#   ADMIN_USERNAME  masked
+#   ADMIN_PASSWORD  masked
+# Variables marked "protected" only reach protected branches. Leave the credentials
+# unprotected if merge request pipelines from feature branches should run the smoke suite.
+
+workflow:
+  rules:
+    # One pipeline per change: an MR pipeline when an MR is open, otherwise a branch pipeline.
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+stages:
+  - validate
+  - test
+
+variables:
+  # Environment the tests target; picks the environment-scoped BASE_URL. Override per
+  # schedule or in the "Run pipeline" form.
+  TARGET_ENV:
+    value: "demo"
+    description: "Environment to test (selects the environment-scoped BASE_URL variable)"
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress --errors"
+
+default:
+  image: maven:3.9.11-eclipse-temurin-21
+  interruptible: true
+  timeout: 20 minutes
+  # Retry infrastructure problems only. A failing test is never retried, or flakiness
+  # and real regressions would be hidden.
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - scheduler_failure
+  cache:
+    key:
+      files:
+        - pom.xml
+    paths:
+      - .m2/repository/
+
+compile-and-bind:
+  stage: validate
+  script:
+    - mvn $MAVEN_CLI_OPTS test -Dcucumber.execution.dry-run=true -Dcucumber.plugin=summary
+
+# Shared setup for every job that calls the API.
+.api-tests:
+  stage: test
+  needs: [compile-and-bind]
+  environment:
+    name: $TARGET_ENV
+    action: verify
+  variables:
+    # JUnit Platform tag expression over the Cucumber tags, without "@" (see pom.xml).
+    TEST_GROUPS: "regression"
+  script:
+    - mvn $MAVEN_CLI_OPTS test "-Dgroups=$TEST_GROUPS"
+  artifacts:
+    when: always
+    expire_in: 2 weeks
+    paths:
+      - target/cucumber-reports/
+    reports:
+      # Surefire's JUnit XML feeds the MR test widget and the pipeline "Tests" tab.
+      junit: target/surefire-reports/TEST-*.xml
+
+smoke:
+  extends: .api-tests
+  variables:
+    TEST_GROUPS: "smoke"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+
+regression:
+  extends: .api-tests
+  variables:
+    TEST_GROUPS: "regression"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+known-defects:
+  extends: .api-tests
+  variables:
+    TEST_GROUPS: "known-defect"
+    RUN_KNOWN_DEFECTS: "true"
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"

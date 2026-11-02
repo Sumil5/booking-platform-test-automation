@@ -81,8 +81,28 @@ Java code.
 `@regression` is set on every feature. `@smoke` marks the critical success paths: login,
 CRUD for rooms and bookings, and the contact form. It runs in seconds and is the first
 thing to run against a new environment. `@negative`, `@auth`, `@rooms`, `@bookings` and
-`@messages` allow narrower selections, for example
-`-Dcucumber.filter.tags="@bookings and not @negative"`.
+`@messages` allow narrower selections. Selection uses Surefire's `-Dgroups`, a JUnit
+Platform tag expression such as `"bookings & !negative"`. JUnit applies it at discovery,
+so excluded scenarios don't show up as "skipped" in the JUnit XML and the CI test widget.
+`cucumber.filter.tags` would report every one of them as skipped.
+
+**Known defects are skipped, not deleted.**
+On the live site, every `/{id}` path returns 500, which breaks 35 scenarios. Those
+scenarios still describe correct behaviour, so they keep their assertions and carry
+`@known-defect`. A `@Before` hook (order 0, so it runs before the Background creates any
+data) aborts them as *skipped*, with the reason in the report, unless `RUN_KNOWN_DEFECTS`
+is true. That keeps the default run green, so a new failure stands out. The defect stays
+visible in every report, and any tag selection still works. A scheduled CI job runs them
+with `allow_failure: true`. When that job turns green, the platform is fixed and the tag
+should come off.
+
+**CI.**
+`.gitlab-ci.yml` starts with a compile and dry-run job that needs no secrets, then runs
+smoke on merge requests and regression on the default branch, nightly and on demand.
+`BASE_URL` is scoped to a GitLab environment selected by `TARGET_ENV`, which is what
+keeps the pipeline environment-agnostic. Only infrastructure failures are retried; test
+failures never are. No `resource_group` lock is needed on the shared environment, because
+each scenario owns its data.
 
 **Reports keep the evidence.**
 Cucumber writes HTML, JSON (for CI tooling) and a timeline to `target/cucumber-reports/`.
@@ -95,8 +115,7 @@ report alone.
 
 - The API map comes from the platform's source code and was then checked against the
   live site (see "Live verification" in `docs/API.md`). On the live site, every `/{id}`
-  path currently answers 500. The scenarios that use those paths stay red on purpose:
-  they describe the correct behaviour and will pass once the deployment is fixed.
+  path currently answers 500. Their scenarios are tagged `@known-defect` (see above).
 - Scenarios run one at a time by default, to be gentle on a shared public site. The
   token provider and per-scenario state are safe for parallel runs; to run in parallel,
   set `cucumber.execution.parallel.enabled=true`.

@@ -3,6 +3,10 @@ Feature: Rooms
   Anyone can browse rooms. Only an authenticated admin can create, update or delete them.
   Every scenario creates its own room, so it does not depend on the shared seed data.
 
+  # @known-defect: on the live site every /{id} path (get, update, delete, mark-read)
+  # returns 500. These scenarios describe correct behaviour and are skipped by default.
+  # See docs/API.md "Live verification". Run them with RUN_KNOWN_DEFECTS=true.
+
   @smoke
   Scenario: The room list returns complete room records
     Given a room exists
@@ -17,18 +21,21 @@ Feature: Rooms
     Then the response should be successful
     And the room should be listed with the details I sent
 
+  @known-defect
   Scenario: A room can be fetched by its id
     Given a room exists
     When I request the room by its id
     Then the response status should be 200
     And the room response should match the room I created
 
+  @known-defect
   Scenario: Admin updates a room
     Given a room exists
     When I update the room to type "Suite" priced at 275
     Then the response should be successful
     And fetching the room should show type "Suite" and price 275
 
+  @known-defect
   Scenario: Admin deletes a room
     Given a room exists
     When I delete the room
@@ -69,7 +76,7 @@ Feature: Rooms
     Then the response status should be 401
     And the error messages should include "Authentication required"
 
-  @negative
+  @negative @known-defect
   Scenario Outline: Changing a room with <kind> token is rejected
     Given a room exists
     When I try to <action> with <kind> token
@@ -85,12 +92,12 @@ Feature: Rooms
       | delete the room | an invalid |
       | delete the room | a tampered |
 
-  @negative
+  @negative @known-defect
   Scenario: Fetching a room that does not exist returns 404
     When I request a room that does not exist
     Then the response status should be 404
 
-  @negative
+  @negative @known-defect
   Scenario: Deleting a room that does not exist returns 404
     When I delete a room that does not exist
     Then the response status should be 404

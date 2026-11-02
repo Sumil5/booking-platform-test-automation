@@ -27,7 +27,7 @@ The full suite and manual `curl` probes were run against `https://automationinte
   rewrites straight to the Spring services, so the rewrite target is probably
   misconfigured in that deployment. The tables below describe the behaviour the source
   code defines, which is what the suite asserts. The 35 scenarios that use these paths
-  fail until the deployment is fixed. Their cleanup also fails, so test data from them
+  are tagged `@known-defect` and skipped by default until the deployment is fixed. Their cleanup also fails, so test data from them
   stays on the site until the next reset.
 
 ## Architecture: two layers behind `/api`
