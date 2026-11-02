@@ -21,6 +21,7 @@ public final class Config {
     public static final String ADMIN_PASSWORD = "ADMIN_PASSWORD";
     public static final String HTTP_TIMEOUT_MS = "HTTP_TIMEOUT_MS";
     public static final String TOKEN_REVALIDATE_SECONDS = "TOKEN_REVALIDATE_SECONDS";
+    public static final String RUN_KNOWN_DEFECTS = "RUN_KNOWN_DEFECTS";
 
     private static final Dotenv DOTENV = Dotenv.configure().ignoreIfMissing().ignoreIfMalformed().load();
     private static volatile Config instance;

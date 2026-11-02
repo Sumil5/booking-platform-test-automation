@@ -24,8 +24,13 @@
         <surefire.version>3.5.4</surefire.version>
         <compiler.version>3.14.1</compiler.version>
 
-        <!-- Override on the command line, e.g. -Dcucumber.filter.tags=@smoke -->
-        <cucumber.filter.tags>not @wip</cucumber.filter.tags>
+        <!--
+          Test selection uses JUnit Platform tag expressions over the Cucumber tags (no "@"),
+          applied at discovery so excluded scenarios are not reported as skipped:
+            mvn test -Dgroups=smoke
+            mvn test -Dgroups="bookings & !negative"
+        -->
+        <excludedGroups>wip</excludedGroups>
     </properties>
 
     <dependencyManagement>
@@ -126,9 +131,6 @@
                     <includes>
                         <include>**/RunCucumberTest.java</include>
                     </includes>
-                    <systemPropertyVariables>
-                        <cucumber.filter.tags>${cucumber.filter.tags}</cucumber.filter.tags>
-                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>
