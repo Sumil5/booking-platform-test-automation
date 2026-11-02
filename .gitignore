@@ -1,0 +1,13 @@
+# Local configuration and secrets: never commit
+.env
+.env.*
+!.env.example
+
+# Build output and reports
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
