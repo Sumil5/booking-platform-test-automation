@@ -89,10 +89,9 @@ so excluded scenarios don't show up as "skipped" in the JUnit XML and the CI tes
 **Known defects are skipped, not deleted.**
 On the live site, every `/{id}` path returns 500, which breaks 35 scenarios. Those
 scenarios still describe correct behaviour, so they keep their assertions and carry
-`@known-defect`. A `@Before` hook aborts them before the Background creates any data
-(Before hooks always run before Background steps, and order 0 puts this one ahead of any
-other Before hook). It aborts them as *skipped*, with the reason in the report, unless `RUN_KNOWN_DEFECTS`
-is true. That keeps the default run green, so a new failure stands out. The defect stays
+`@known-defect`. Unless `RUN_KNOWN_DEFECTS` is true, a `@Before` hook aborts them as
+*skipped*, with the reason in the report. Before hooks always run before Background steps,
+so no data is created for them, and order 0 puts this hook ahead of any other Before hook. That keeps the default run green, so a new failure stands out. The defect stays
 visible in every report, and any tag selection still works. A scheduled CI job runs them
 with `allow_failure: true`. When that job turns green, the platform is fixed and the tag
 should come off.
