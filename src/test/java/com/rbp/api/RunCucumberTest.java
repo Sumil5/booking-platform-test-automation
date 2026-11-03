@@ -8,9 +8,9 @@ import org.junit.platform.suite.api.Suite;
 import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 
 /**
- * Entry point for {@code mvn test}. Reporting, tag filtering and other settings are in
- * {@code src/test/resources/junit-platform.properties}; any of them can be overridden
- * with {@code -D}, e.g. {@code -Dcucumber.filter.tags=@smoke}.
+ * Entry point for {@code mvn test}. Reporting and other Cucumber settings are in
+ * {@code src/test/resources/junit-platform.properties}. Select scenarios by tag with
+ * Surefire's {@code -Dgroups}, e.g. {@code mvn test -Dgroups=smoke} (see pom.xml).
  */
 @Suite
 @IncludeEngines("cucumber")
