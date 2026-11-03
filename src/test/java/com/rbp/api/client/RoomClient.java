@@ -29,14 +29,14 @@ public class RoomClient extends BaseClient {
     }
 
     public Response create(Object body, Optional<String> token) {
-        return request(token).body(body).post("/api/room");
+        return send(token, spec -> spec.body(body).post("/api/room"));
     }
 
     public Response update(int roomId, Object body, Optional<String> token) {
-        return request(token).body(body).put("/api/room/{id}", roomId);
+        return send(token, spec -> spec.body(body).put("/api/room/{id}", roomId));
     }
 
     public Response delete(int roomId, Optional<String> token) {
-        return request(token).delete("/api/room/{id}", roomId);
+        return send(token, spec -> spec.delete("/api/room/{id}", roomId));
     }
 }

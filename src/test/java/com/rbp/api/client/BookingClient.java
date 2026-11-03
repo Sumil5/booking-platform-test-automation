@@ -17,18 +17,18 @@ public class BookingClient extends BaseClient {
     }
 
     public Response get(int bookingId, Optional<String> token) {
-        return request(token).get("/api/booking/{id}", bookingId);
+        return send(token, spec -> spec.get("/api/booking/{id}", bookingId));
     }
 
     public Response listForRoom(int roomId, Optional<String> token) {
-        return request(token).queryParam("roomid", roomId).get("/api/booking");
+        return send(token, spec -> spec.queryParam("roomid", roomId).get("/api/booking"));
     }
 
     public Response update(int bookingId, Object body, Optional<String> token) {
-        return request(token).body(body).put("/api/booking/{id}", bookingId);
+        return send(token, spec -> spec.body(body).put("/api/booking/{id}", bookingId));
     }
 
     public Response delete(int bookingId, Optional<String> token) {
-        return request(token).delete("/api/booking/{id}", bookingId);
+        return send(token, spec -> spec.delete("/api/booking/{id}", bookingId));
     }
 }

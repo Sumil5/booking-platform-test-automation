@@ -33,13 +33,27 @@ local `.env`. Nothing has a default in code. A missing `BASE_URL`, `ADMIN_USERNA
 key. Pointing the suite at a local or staging deployment needs only a different
 `BASE_URL`.
 
-**One login per run, with a safety net.**
+**One login per run, with two safety nets.**
 `TokenProvider` is a lazy, thread-safe singleton. It logs in on first use and caches the
 token for the rest of the run. The public site wipes its databases about every 10
-minutes, and that wipe deletes all tokens. So once the cached token has gone unconfirmed
-for `TOKEN_REVALIDATE_SECONDS` (default 60), the provider checks it with a cheap
-`/api/auth/validate` call and logs in again only if the check fails. A long run therefore
-survives a reset without logging in before every request.
+minutes, and that wipe deletes all tokens, so the provider guards against it twice:
+- *Proactive:* once the cached token has gone unconfirmed for `TOKEN_REVALIDATE_SECONDS`
+  (default 60), the provider checks it with a cheap `/api/auth/validate` call and logs in
+  again only if the check fails.
+- *Reactive:* a reset can still land inside that window. It did in a GitLab run, where
+  every room creation after the reset failed. So every authenticated client call goes
+  through `BaseClient.send()`. When a request comes back 401, 403 or 500, the client asks
+  the provider whether the token was revoked. The provider replaces it only if it issued
+  that token itself and the server confirms it is dead. The client then replays the
+  request once.
+
+The reactive check can never rescue a negative test. Tokens sent on purpose (none,
+random, tampered) were never issued by the provider, so their responses are returned
+untouched. A valid token that gets a genuine 403 is also left alone, because the server
+confirms it is still valid. Both attempts appear in the report. While the live `/{id}`
+defect makes cleanup deletes return 500, each one can trigger a validate call (at most one
+every 2 seconds). That adds a few seconds per run, and the cost disappears once the
+platform is fixed.
 
 **Every scenario owns its data.**
 The environment is shared and resets on a timer, so no scenario relies on seed data or
@@ -122,7 +136,8 @@ report alone.
 - Scenarios run one at a time by default, to be gentle on a shared public site. The
   token provider and per-scenario state are safe for parallel runs; to run in parallel,
   set `cucumber.execution.parallel.enabled=true`.
-- Failed assertions are never retried. A reset in the middle of a scenario can still
-  cause a rare failure, and hiding it would also hide real defects.
+- Failed assertions are never retried. The only replay is the one above: a request whose
+  admin token the server has confirmed was revoked. A reset can still delete a scenario's
+  own test data mid-scenario, and that rare failure is left visible rather than hidden.
 - No JSON-schema contract tests yet. The field-level assertions cover the same ground for
   now. Schemas would be the next step if the API starts to change.
