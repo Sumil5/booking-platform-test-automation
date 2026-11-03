@@ -8,8 +8,8 @@
 #                           platform is fixed, which is the cue to remove the tag.
 #
 # Required CI/CD variables (Settings > CI/CD > Variables):
-#   BASE_URL        scoped to an environment (see TARGET_ENV) so one pipeline can target any env
-#   ADMIN_USERNAME  masked
+#   BASE_URL        scope "All", or the environment named by TARGET_ENV to vary it per env
+#   ADMIN_USERNAME  visible (GitLab only masks values of 8+ characters, e.g. not "admin")
 #   ADMIN_PASSWORD  masked
 # Variables marked "protected" only reach protected branches. Leave the credentials
 # unprotected if merge request pipelines from feature branches should run the smoke suite.

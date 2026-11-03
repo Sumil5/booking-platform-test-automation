@@ -91,18 +91,21 @@ On the live site, every `/{id}` path returns 500, which breaks 35 scenarios. Tho
 scenarios still describe correct behaviour, so they keep their assertions and carry
 `@known-defect`. Unless `RUN_KNOWN_DEFECTS` is true, a `@Before` hook aborts them as
 *skipped*, with the reason in the report. Before hooks always run before Background steps,
-so no data is created for them, and order 0 puts this hook ahead of any other Before hook. That keeps the default run green, so a new failure stands out. The defect stays
-visible in every report, and any tag selection still works. A scheduled CI job runs them
+so no data is created for them, and order 0 puts this hook ahead of any other Before hook.
+That keeps the default run green, so a new failure stands out. The defect stays visible in
+every report, and any tag selection still works. A scheduled CI job runs them
 with `allow_failure: true`. When that job turns green, the platform is fixed and the tag
 should come off.
 
 **CI.**
 `.gitlab-ci.yml` starts with a compile and dry-run job that needs no secrets, then runs
 smoke on merge requests and regression on the default branch, nightly and on demand.
-`BASE_URL` is scoped to a GitLab environment selected by `TARGET_ENV`, which is what
-keeps the pipeline environment-agnostic. Only infrastructure failures are retried; test
-failures never are. No `resource_group` lock is needed on the shared environment, because
-each scenario owns its data.
+Each test job is attached to a GitLab environment named by `TARGET_ENV`, so `BASE_URL` can
+be scoped per environment and the same pipeline can target any of them. Only
+infrastructure failures are retried; test failures never are. No `resource_group` lock is
+needed on the shared environment, because each scenario owns its data. A run on GitLab.com
+finishes as "passed with warnings": `regression` green with the known defects skipped, and
+`known-defects` failing but allowed to (see "GitLab CI run" in `docs/API.md`).
 
 **Reports keep the evidence.**
 Cucumber writes HTML, JSON (for CI tooling) and a timeline to `target/cucumber-reports/`.

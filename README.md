@@ -19,10 +19,11 @@ environment variables. JVM `-D` properties take precedence over both.
 | Key | Required | Purpose |
 |---|---|---|
 | `BASE_URL` | yes | Deployment to test, e.g. `https://automationintesting.online` |
-| `ADMIN_USERNAME` | yes | Admin login. The public demo shows its credentials on the `/admin` login page |
+| `ADMIN_USERNAME` | yes | Admin login. The public demo uses the platform's seeded admin account; see [`seed.sql`](https://github.com/mwinteringham/restful-booker-platform/blob/trunk/auth/src/main/resources/seed.sql) |
 | `ADMIN_PASSWORD` | yes | Admin password |
 | `HTTP_TIMEOUT_MS` | no | Connect and read timeout (default 15000) |
 | `TOKEN_REVALIDATE_SECONDS` | no | How long a cached token is trusted before it is checked again (default 60) |
+| `RUN_KNOWN_DEFECTS` | no | `true` runs the `@known-defect` scenarios instead of skipping them (default `false`) |
 
 ## Run
 
@@ -60,6 +61,8 @@ mvn test -Dcucumber.execution.dry-run=true
 
 ## CI (GitLab)
 
+The repository lives on GitHub; to run the pipeline, import it into GitLab
+(New project > Import project > Repository by URL) and push `main` there after each merge.
 `.gitlab-ci.yml` runs:
 
 | Job | When | What |
@@ -70,13 +73,26 @@ mvn test -Dcucumber.execution.dry-run=true
 | `known-defects` | schedules, manual runs | `@known-defect` with `RUN_KNOWN_DEFECTS=true`, allowed to fail |
 
 Set these under Settings > CI/CD > Variables:
-- `BASE_URL`, scoped to the environment named by `TARGET_ENV` (default `demo`).
-- `ADMIN_USERNAME` and `ADMIN_PASSWORD`, masked. Protected variables only reach
-  protected branches, so leave them unprotected if merge request pipelines should run
-  the smoke suite.
 
-For a nightly run, add a schedule under Build > Pipeline schedules. The JUnit results
-appear in the merge request widget, and the Cucumber HTML report is kept as a job artifact.
+| Key | Visibility | Environment scope |
+|---|---|---|
+| `BASE_URL` | Visible | All, or the environment named by `TARGET_ENV` (default `demo`) to vary it per environment |
+| `ADMIN_USERNAME` | Visible | All |
+| `ADMIN_PASSWORD` | Masked | All |
+
+GitLab can only mask values of 8 characters or more, so a short username such as `admin`
+must stay visible. That is acceptable for the public demo account. For a real environment,
+use a username long enough to mask, or fetch credentials from a vault.
+
+Leave "Protect variable" unticked if merge request pipelines from feature branches should
+run the smoke suite: protected variables only reach protected branches.
+
+A manual run (Build > Pipelines > New pipeline) starts `compile-and-bind`, `regression` and
+`known-defects`. Expect the pipeline to finish as **passed with warnings**: `regression`
+passes with the known defects skipped, and `known-defects` fails but is allowed to. For a
+nightly run, add a schedule under Build > Pipeline schedules. The JUnit results appear in
+the pipeline's Tests tab and the merge request widget, and the Cucumber HTML report is kept
+as a job artifact (Job artifacts > Browse > `target/cucumber-reports/cucumber.html`).
 
 ## Reports
 

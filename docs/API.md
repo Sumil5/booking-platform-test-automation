@@ -27,8 +27,24 @@ The full suite and manual `curl` probes were run against `https://automationinte
   rewrites straight to the Spring services, so the rewrite target is probably
   misconfigured in that deployment. The tables below describe the behaviour the source
   code defines, which is what the suite asserts. The 35 scenarios that use these paths
-  are tagged `@known-defect` and skipped by default until the deployment is fixed. Their cleanup also fails, so test data from them
-  stays on the site until the next reset.
+  are tagged `@known-defect` and skipped by default until the deployment is fixed.
+  Cleanup of the data that other scenarios create also uses these paths, so it fails
+  too, and that data stays on the site until the next reset.
+
+## GitLab CI run (2026-11-03)
+
+Pipeline on GitLab.com, `main` at commit `c2a719e`, started manually: **passed with
+warnings** in 1 min 41 s.
+
+| Job | Result |
+|---|---|
+| `compile-and-bind` | Passed |
+| `regression` | Passed: 40 passed, 35 skipped (all `@known-defect`), 0 failed; scenarios took 28 s |
+| `known-defects` | Failed, allowed to fail: the same 35 scenarios still hit the `/{id}` 500s |
+
+The Cucumber report from the runner confirms that every password is masked, that one
+token was used for the whole run (one login), and that the report records the GitLab job
+URL, commit and branch.
 
 ## Architecture: two layers behind `/api`
 
