@@ -46,6 +46,26 @@ The Cucumber report from the runner confirms that every password is masked, that
 token was used for the whole run (one login), and that the report records the GitLab job
 URL, commit and branch.
 
+## GitLab CI run after merge (2026-11-03): a reset mid-run
+
+The push pipeline for `main` at `41061d0` ran `regression` and got 36 passed, 35 skipped
+and **4 failed**. All 4 failed while creating a room: `POST /api/room` returned
+`500 {"errors":["An unexpected error occurred"]}`.
+
+- Every valid room creation up to 17 s into the run returned 200; every one from 20 s
+  onwards returned 500.
+- The room service was healthy throughout: invalid room payloads still got their 400s,
+  and a request with no token still got its 401.
+- The 500 body exactly matches what this endpoint returns for an invalid token (see the
+  first quirk below).
+
+Conclusion: the auth service reset between 17 s and 20 s and deleted the run's token,
+which the provider was still trusting inside its 60-second revalidation window. The
+framework now recovers from this (see ARCHITECTURE.md, "One login per run, with two
+safety nets"). A live check with a simulated revoked token returned 500, then a re-login
+and a replay that returned 200, while invalid, tampered and missing tokens kept their
+original 500, 500 and 401 responses.
+
 ## Architecture: two layers behind `/api`
 
 ```

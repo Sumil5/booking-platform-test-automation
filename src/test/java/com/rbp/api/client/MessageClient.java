@@ -29,10 +29,10 @@ public class MessageClient extends BaseClient {
     }
 
     public Response markRead(int messageId, Optional<String> token) {
-        return request(token).put("/api/message/{id}/read", messageId);
+        return send(token, spec -> spec.put("/api/message/{id}/read", messageId));
     }
 
     public Response delete(int messageId, Optional<String> token) {
-        return request(token).delete("/api/message/{id}", messageId);
+        return send(token, spec -> spec.delete("/api/message/{id}", messageId));
     }
 }
